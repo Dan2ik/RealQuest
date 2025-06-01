@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'users',
     'academic_structure',
+    'excursions',
 ]
 
 MIDDLEWARE = [
@@ -77,10 +79,10 @@ WSGI_APPLICATION = 'Quest.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'BDQuest',
-        'USER': 'postgres',
+        'NAME': 'bdquest',
+        'USER': 'daniyar',
         'PASSWORD': 'admin',
-        'HOST': 'localhost',
+        'HOST': '176.111.212.151',
         'PORT': '5432',
         'OPTIONS': {
             'client_encoding': 'UTF8',
@@ -124,8 +126,10 @@ USE_TZ = True
 AUTH_USER_MODEL = 'users.User'
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
-
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'excursions' / 'media'
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles' # Создаст папку 'staticfiles' для
 LOGOUT_REDIRECT_URL = '/'
 LOGIN_REDIRECT_URL = 'academic_structure:combined_selection'
 LOGIN_URL = 'login'
