@@ -109,8 +109,12 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
-
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'), # Указывает на папку 'Quest/static/'
+    # или, если вы используете pathlib:
+    # BASE_DIR / 'static',
+]
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') # Это для collectstatic
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
