@@ -1,0 +1,47 @@
+{
+  "default_scene": "pano_entrance",
+  "autoLoad": true,
+  "scenes": {
+    "pano_entrance": {
+      "title": "Вход в университет",
+      "type": "equirectangular",
+      "panorama": "/media/panoramas/1.jpg",
+      "hotSpots": [
+        {
+          "pitch": 0, "yaw": 10, "type": "scene", "text": "Пройти в аудиторию",
+          "sceneId": "pano_auditorium",
+          "targetYaw": -45, "targetPitch": 0
+        }
+      ]
+    },
+    "pano_auditorium": {
+      "title": "Лекционная аудитория",
+      "type": "equirectangular",
+      "panorama": "/media/panoramas/2.jpg",
+      "hotSpots": [
+        {
+          "pitch": 5, "yaw": -10, "type": "scene", "text": "Вернуться к входу",
+          "sceneId": "pano_entrance",
+          "targetYaw": 90, "targetPitch": 0
+        },
+        {
+          "pitch": -10, "yaw": 60, "type": "scene", "text": "Перейти в лабораторию",
+          "sceneId": "pano_lab",
+          "targetYaw": 0, "targetPitch": -5
+        }
+      ]
+    },
+    "pano_lab": {
+      "title": "Научная лаборатория",
+      "type": "equirectangular",
+      "panorama": "/media/panoramas/3.jpg",
+      "hotSpots": [
+        {
+          "pitch": 0, "yaw": -100, "type": "scene", "text": "Вернуться в аудиторию",
+          "sceneId": "pano_auditorium",
+          "targetYaw": 180, "targetPitch": 0
+        }
+      ]
+    }
+  }
+}
