@@ -8,9 +8,8 @@ from django.db.models import Prefetch # Для эффективной выбор
 
 @login_required
 def excursion_view(request, route_id):
-    # Предварительно загружаем панорамы маршрута, упорядоченные по 'order',
-    # и их связанные горячие точки.
-    # Это позволяет избежать множества запросов к БД (N+1 проблема).
+    # Получение маршрута по id из базы данных сортировка по order
+    # также загружаются сразу hotspotы
     route = get_object_or_404(
         Route.objects.prefetch_related(
             Prefetch(
@@ -20,14 +19,14 @@ def excursion_view(request, route_id):
         ),
         id=route_id
     )
-
+    #словарь для хренения сцен(панорам
     scenes = {}
+    #id первой сцены берем сразу или ищем ниже
     first_scene_id = route.first_scene if route.first_scene else None
 
     # Итерируем по панорамам маршрута
     for panorama in route.panoramas.all():
         scene_id = panorama.scene_id
-
         # Если в маршруте не указана первая сцена, используем первую панораму в порядке
         if not first_scene_id:
             first_scene_id = scene_id
@@ -41,7 +40,6 @@ def excursion_view(request, route_id):
                 "text": hotspot_obj.text,
                 # Свойство 'type' для Pannellum будет определено ниже
             }
-
             if hotspot_obj.target_scene:
                 # Это горячая точка-ссылка на другую сцену
                 hotspot_data["type"] = "scene"

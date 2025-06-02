@@ -56,8 +56,7 @@
         <script src="{% static 'pannellum/pannellum.js' %}"></script>
 
         {# Используем json_script для безопасной передачи Python-объекта в JavaScript #}
-
-            {{ pannellum_config|json_script:"pannellum-config-data" }}
+        {{ pannellum_config|json_script:"pannellum-config-data" }}
 
         <script>
             console.log("[DEBUG] Script file loaded. Initializing Pannellum...");
@@ -99,17 +98,21 @@
                 const configElement = document.getElementById('pannellum-config-data');
                 if (!configElement) {
                     console.error("[ERROR] Element 'pannellum-config-data' not found. Cannot retrieve config. Exiting initialization.");
-                    return; // Теперь return допустим, так как он внутри функции
+                    return;
                 }
                 console.log("[DEBUG] Found 'pannellum-config-data' element.");
 
+                // Вывод сырой JSON-строки в консоль
+                const rawJsonString = configElement.textContent || configElement.innerHTML;
+                console.log("[DEBUG] Raw JSON string from element:", rawJsonString);
+
                 let pannellumConfig;
                 try {
-                    pannellumConfig = JSON.parse(configElement.textContent || configElement.innerHTML);
-                    console.log("[DEBUG] Successfully parsed Pannellum config:", pannellumConfig);
+                    pannellumConfig = JSON.parse(rawJsonString); // Используем rawJsonString
+                    console.log("[DEBUG] Successfully parsed Pannellum config (JS Object):", pannellumConfig);
                 } catch (e) {
-                    console.error("[ERROR] Failed to parse Pannellum config JSON:", e, configElement.textContent || configElement.innerHTML);
-                    return; // Теперь return допустим
+                    console.error("[ERROR] Failed to parse Pannellum config JSON:", e, rawJsonString); // Выводим сырую строку при ошибке
+                    return;
                 }
 
 
@@ -133,7 +136,7 @@
                                         console.warn(`[WARNING] Custom tooltip function '${funcName}' NOT FOUND in customHotspotFunctions for hotspot:`, hotspot);
                                         delete hotspot.createTooltipFunc;
                                     }
-                                    delete hotspot.tooltip_func_name; // Удаляем строковое имя после использования
+                                    delete hotspot.tooltip_func_name;
                                 }
                                 return hotspot;
                             });
@@ -144,14 +147,14 @@
                     }
                 }
                 console.log("[DEBUG] Finished processing all scenes and hotspots.");
-                console.log("[DEBUG] Final Pannellum config before viewer initialization:", pannellumConfig);
+                console.log("[DEBUG] Final Pannellum config before viewer initialization (after hotspot processing):", pannellumConfig);
 
 
                 // 3. Проверяем контейнер и инициализируем Pannellum
                 const panoramaViewerDiv = document.getElementById('panorama-viewer');
                 if (!panoramaViewerDiv) {
                     console.error("[ERROR] Element 'panorama-viewer' not found. Pannellum cannot be initialized. Exiting initialization.");
-                    return; // Теперь return допустим
+                    return;
                 }
                 const divWidth = panoramaViewerDiv.offsetWidth;
                 const divHeight = panoramaViewerDiv.offsetHeight;
@@ -177,7 +180,6 @@
 
             // === ВЫЗЫВАЕМ ОСНОВНУЮ ФУНКЦИЮ ПОСЛЕ ЗАГРУЗКИ DOM ===
             // document.addEventListener('DOMContentLoaded', initializePannellumViewer);
-            // Если скрипт находится в конце <body>, можно вызвать сразу
             initializePannellumViewer();
             console.log("[DEBUG] Pannellum initialization process launched.");
         </script>
