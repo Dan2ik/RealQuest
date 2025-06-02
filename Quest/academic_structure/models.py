@@ -25,10 +25,10 @@ class Department(models.Model): # Единственное число
     )
 
     class Meta:
-        db_table = 'departments' # Соответствует твоему DDL
+        db_table = 'departments'
         verbose_name = 'Кафедра'
         verbose_name_plural = 'Кафедры'
-        ordering = ['institute', 'name'] # Сортировка сначала по институту, потом по названию кафедры
+        ordering = ['institute', 'name']
         unique_together = [['name', 'institute']]
 
     def __str__(self):

@@ -42,11 +42,3 @@ class HierarchicalSelectionForm(forms.Form):
                 # Неверный department_id или он отсутствует, queryset останется пустым (Direction.objects.none())
                 pass
 
-
-class DirectionSearchForm(forms.Form):
-    query = forms.CharField(
-        label="Название направления",
-        max_length=100,
-        required=True,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Введите часть названия направления'})
-    )

@@ -2,10 +2,9 @@
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from .forms import HierarchicalSelectionForm, DirectionSearchForm
 from .models import Department, Direction
-from excursions.models import Route  # Импортируем модель Route (а не Routes)
-
+from academic_structure.forms import *
+from excursions.models import Route
 
 @login_required
 def combined_selection_view(request):
@@ -33,7 +32,7 @@ def combined_selection_view(request):
             available_routes = Route.objects.filter(direction=selected_direction_obj)
         hierarchical_form = form_h  # передаем в контекст форму с данными (и возможными ошибками)
         print(form_h)
-        search_form = DirectionSearchForm()  # форма поиска остается чистой
+
         if selected_direction_obj:
             # Если выбрано направление через иерархическую форму
             available_routes = Route.objects.filter(
@@ -59,16 +58,11 @@ def combined_selection_view(request):
                     .order_by('name')
             search_form = form_s  # передаем в контекст форму поиска с данными (и возможными ошибками)
             is_search_active = True
-        else:
-            search_form = DirectionSearchForm()  # Чистая форма поиска
 
-    else:  # Другие методы (PUT, DELETE и т.д.) - маловероятно для этих форм
-        hierarchical_form = HierarchicalSelectionForm()
-        search_form = DirectionSearchForm()
+
 
     context = {
         'hierarchical_form': hierarchical_form,
-        'search_form': search_form,
         'selected_direction': selected_direction_obj,  # Результат иерархического выбора
         'search_results': search_results,  # Результаты поиска по названию
         'is_search_active': is_search_active,  # Флаг, был ли поиск по названию
