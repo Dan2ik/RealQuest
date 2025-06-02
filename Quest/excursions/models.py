@@ -1,5 +1,8 @@
 from django.db import models
 from academic_structure.models import Institute, Department, Direction
+from django.conf import settings
+from django.contrib.postgres.fields import ArrayField
+from django.utils import timezone
 
 
 class Route(models.Model):
@@ -73,3 +76,23 @@ class ReferenceInfo(models.Model):
     class Meta:
         verbose_name = "Справочная информация"
         verbose_name_plural = "Справочная информация"
+
+class UserRouteProgress(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        verbose_name="Пользователь"
+    )
+    route = models.ForeignKey(Route, on_delete=models.CASCADE, verbose_name="Маршрут")
+    last_scene_id = models.CharField(max_length=100, blank=True, verbose_name="Последняя сцена")
+    visited_scenes = ArrayField(models.CharField(max_length=100), default=list, blank=True, verbose_name="Посещённые сцены")
+    progress_percent = models.FloatField(default=0.0, verbose_name="Прогресс (%)")
+    updated_at = models.DateTimeField(default=timezone.now, verbose_name="Обновлено")
+
+    class Meta:
+        unique_together = ('user', 'route')
+        verbose_name = "Прогресс пользователя"
+        verbose_name_plural = "Прогресс пользователей"
+
+    def __str__(self):
+        return f"{self.user} – {self.route.name} – {self.progress_percent:.1f}%"

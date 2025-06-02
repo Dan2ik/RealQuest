@@ -89,19 +89,33 @@ WSGI_APPLICATION = 'Quest.wsgi.application'
 #     }
 #
 # }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'bestdb',
+#         'USER': 'daniyar',
+#         'PASSWORD': 'admin',
+#         'HOST': '176.111.212.151',
+#         'PORT': '5432',
+#         'OPTIONS': {
+#             'client_encoding': 'UTF8',
+#         }
+#     }
+#
+# }
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'bestdb',
-        'USER': 'daniyar',
-        'PASSWORD': 'admin',
-        'HOST': '176.111.212.151',
+        'NAME': 'RAB2',
+        'USER': 'postgres',
+        'PASSWORD': '1234',
+        'HOST': 'localhost',
         'PORT': '5432',
         'OPTIONS': {
             'client_encoding': 'UTF8',
         }
     }
-
 }
 
 
@@ -139,8 +153,9 @@ USE_I18N = True
 
 USE_TZ = True
 
-# Указываем нашу пользовательскую модель пользователя
 AUTH_USER_MODEL = 'users.User'
+
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 MEDIA_URL = '/media/'

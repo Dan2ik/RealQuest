@@ -55,20 +55,46 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const config = JSON.parse(document.getElementById('pannellum-config-data').textContent);
-
-            // Отображение JSON с отступами
             document.getElementById('config-json').textContent = JSON.stringify(config, null, 2);
 
-            // Инициализация Pannellum
             const viewer = pannellum.viewer('panorama-viewer', config);
 
             viewer.on('error', function (err) {
                 console.error('Pannellum Error:', err.message);
             });
 
-            viewer.on('scenechange', function (newScene) {
-                console.log('Переход на сцену:', newScene);
+            // Функция обновления прогресса
+            function onSceneChange(sceneId) {
+                fetch("{% url 'update_progress' %}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    },
+                    body: JSON.stringify({
+                        route_id: {{ route.id }},
+                        scene_id: sceneId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.progress !== undefined) {
+                        console.log("Прогресс обновлён:", data.progress.toFixed(1) + "%");
+                    } else {
+                        console.warn("Ошибка при обновлении прогресса:", data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error("Ошибка при отправке прогресса:", error);
+                });
+            }
+
+            // Подписка на смену сцены
+            viewer.on('scenechange', function (sceneId) {
+                console.log('Переход на сцену:', sceneId);
+                onSceneChange(sceneId);
             });
         });
     </script>
+
 {% endblock %}

@@ -5,6 +5,64 @@ from django.http import JsonResponse
 from .models import Route, Panorama, HotSpot # Добавили HotSpot
 from academic_structure.models import Department, Direction
 from django.db.models import Prefetch # Для эффективной выборки связанных объектов
+from django.conf import settings
+from django.views.decorators.http import require_POST
+
+@require_POST
+@login_required
+def update_progress(request):
+    data = json.loads(request.body)
+    route_id = data.get('route_id')
+    scene_id = data.get('scene_id')
+
+    route = get_object_or_404(Route, id=route_id)
+    all_scene_ids = list(route.panoramas.values_list('scene_id', flat=True))
+
+    progress_obj, created = UserRouteProgress.objects.get_or_create(
+        user=request.user,
+        route=route,
+        defaults={'visited_scenes': [], 'last_scene_id': scene_id}
+    )
+
+    if scene_id not in progress_obj.visited_scenes:
+        progress_obj.visited_scenes.append(scene_id)
+
+    progress_obj.last_scene_id = scene_id
+    progress_obj.progress_percent = round(len(progress_obj.visited_scenes) / len(all_scene_ids) * 100, 2)
+    progress_obj.updated_at = timezone.now()
+    progress_obj.save()
+
+    return JsonResponse({
+        "success": True,
+        "progress_percent": progress_obj.progress_percent
+    })
+@login_required
+def update_progress(request):
+    data = json.loads(request.body)
+    route_id = data.get('route_id')
+    scene_id = data.get('scene_id')
+
+    route = get_object_or_404(Route, id=route_id)
+    all_scene_ids = list(route.panoramas.values_list('scene_id', flat=True))
+
+    progress_obj, created = UserRouteProgress.objects.get_or_create(
+        user=request.user,
+        route=route,
+        defaults={'visited_scenes': [], 'last_scene_id': scene_id}
+    )
+
+    if scene_id not in progress_obj.visited_scenes:
+        progress_obj.visited_scenes.append(scene_id)
+
+    progress_obj.last_scene_id = scene_id
+    progress_obj.progress_percent = round(len(progress_obj.visited_scenes) / len(all_scene_ids) * 100, 2)
+    progress_obj.updated_at = timezone.now()
+    progress_obj.save()
+
+    return JsonResponse({
+        "success": True,
+        "progress_percent": progress_obj.progress_percent
+    })
 
 @login_required
 def excursion_view(request, route_id):
