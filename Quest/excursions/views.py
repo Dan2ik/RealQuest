@@ -46,7 +46,7 @@ def excursion_view(request, route_id):
             if hotspot_obj.target_scene:  # Убрали искусственное if True
                 # Это горячая точка-ссылка на другую сцену
                 hotspot_data["type"] = "scene"
-                hotspot_data["target"] = hotspot_obj.target_scene.scene_id
+                hotspot_data["sceneId"] = hotspot_obj.target_scene.scene_id
                 if hotspot_obj.target_pitch is not None:
                     hotspot_data["targetPitch"] = hotspot_obj.target_pitch
                 if hotspot_obj.target_yaw is not None:

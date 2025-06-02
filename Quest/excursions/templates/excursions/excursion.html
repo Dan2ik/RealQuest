@@ -5,8 +5,10 @@
     <title>Экскурсия: {{ route.name }}</title>
     {% load static %}
 
-    <!-- Используем стабильную версию Pannellum -->
+    <!-- Pannellum -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css"/>
+    <!-- Подсветка JSON (Prism.js) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism.min.css"/>
     <style>
         #panorama-viewer {
             width: 100%;
@@ -17,6 +19,16 @@
             #panorama-viewer { height: 60vh; }
         }
         .pnlm-hotspot { cursor: pointer !important; }
+        #config-display {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        pre { margin: 0; }
     </style>
 </head>
 <body>
@@ -28,26 +40,33 @@
 
     {{ pannellum_config|json_script:"pannellum-config-data" }}
 
+    <!-- Конфиг с подсветкой -->
+    <div id="config-display">
+        <h3>Конфигурация Pannellum:</h3>
+        <pre><code class="language-json" id="config-json"></code></pre>
+    </div>
+
+    <!-- Библиотеки -->
     <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-json.min.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const config = JSON.parse(document.getElementById('pannellum-config-data').textContent);
 
-            // Добавляем защитные параметры
-            config.default = config.default || {};
-            config.default.sceneFadeDuration = 2000;  // Фиксированное время перехода
+            // Отображаем конфиг с отступами
+            document.getElementById('config-json').textContent = JSON.stringify(config, null, 2);
 
+            // Инициализация Pannellum
             const viewer = pannellum.viewer('panorama-viewer', config);
 
-            // Обработка ошибок
             viewer.on('error', function(err) {
                 console.error('Pannellum Error:', err.message);
             });
 
-            // Отладка переходов
             viewer.on('scenechange', function(newScene) {
-                console.log('Успешный переход на сцену:', newScene);
+                console.log('Переход на сцену:', newScene);
             });
         });
     </script>
