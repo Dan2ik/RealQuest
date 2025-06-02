@@ -2,187 +2,54 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Экскурсия: {{ route.name }}</title>
     {% load static %}
 
-    {# Подключаем стили Pannellum #}
-    <link rel="stylesheet" href="{% static 'pannellum/pannellum.css' %}"/>
+    <!-- Используем стабильную версию Pannellum -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css"/>
     <style>
-        /* Стиль для контейнера панорамы */
         #panorama-viewer {
             width: 100%;
-            height: 80vh; /* Задаем высоту для отображения панорамы */
-            margin-top: 20px; /* Отступ сверху для лучшего вида */
+            height: 80vh;
+            margin-top: 20px;
         }
-        /* Базовый стиль для кастомных горячих точек (кружок) */
-        .custom-hotspot {
-            background-color: rgba(0, 123, 255, 0.7); /* Синий с прозрачностью */
-            border-radius: 50%; /* Делает круглой */
-            width: 25px; /* Размер точки */
-            height: 25px; /* Размер точки */
-            border: 2px solid white; /* Белая обводка */
-            cursor: pointer; /* Курсор при наведении */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 14px;
+        @media (max-width: 768px) {
+            #panorama-viewer { height: 60vh; }
         }
-        /* Стиль для всплывающей подсказки Pannellum */
-        .pnlm-tooltip {
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            max-width: 250px;
-            word-wrap: break-word;
-        }
-        .pnlm-tooltip strong {
-            display: block;
-            margin-bottom: 5px;
-        }
+        .pnlm-hotspot { cursor: pointer !important; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>{{ route.name }}</h1>
         <p>{{ route.description }}</p>
-
         <div id="panorama-viewer"></div>
-
-        {# Подключаем скрипт Pannellum после элемента viewer #}
-        <script src="{% static 'pannellum/pannellum.js' %}"></script>
-
-        {# Используем json_script для безопасной передачи Python-объекта в JavaScript #}
-        {{ pannellum_config|json_script:"pannellum-config-data" }}
-
-        <script>
-            console.log("[DEBUG] Script file loaded. Initializing Pannellum...");
-
-            // === ОПРЕДЕЛЕНИЕ КАСТОМНЫХ ФУНКЦИЙ ДЛЯ ПОДСКАЗОК ===
-            function hotspotInfo(hotSpotDiv, args) {
-                console.log("[DEBUG] hotspotInfo function called for:", args);
-                hotSpotDiv.innerHTML = `
-                    <div><strong>Информация:</strong></div>
-                    <div>${args.text || 'Нет описания'}</div>
-                    <p style="font-size: 0.8em; margin-top: 5px;">Нажмите для подробностей</p>
-                `;
-                hotSpotDiv.onclick = function() {
-                    alert('Вы нажали на информационную точку: ' + (args.text || ''));
-                };
-            }
-
-            function hotspotAnother(hotSpotDiv, args) {
-                console.log("[DEBUG] hotspotAnother function called for:", args);
-                hotSpotDiv.innerHTML = `
-                    <div><strong>Другая точка:</strong></div>
-                    <div>${args.text || 'Нет описания'}</div>
-                    <img src="{% static 'images/example_icon.png' %}" style="width: 50px; margin-top: 5px;">
-                `;
-            }
-
-            const customHotspotFunctions = {
-                'hotspotInfo': hotspotInfo,
-                'hotspotAnother': hotspotAnother,
-            };
-            console.log("[DEBUG] Defined customHotspotFunctions:", customHotspotFunctions);
-
-
-            // === ОСНОВНОЙ КОД ИНИЦИАЛИЗАЦИИ PANNELLUM, ОБЕРНУТЫЙ В ФУНКЦИЮ ===
-            function initializePannellumViewer() {
-                console.log("[DEBUG] initializePannellumViewer() started.");
-
-                // 1. Получаем конфигурацию Pannellum из скрытого тега script
-                const configElement = document.getElementById('pannellum-config-data');
-                if (!configElement) {
-                    console.error("[ERROR] Element 'pannellum-config-data' not found. Cannot retrieve config. Exiting initialization.");
-                    return;
-                }
-                console.log("[DEBUG] Found 'pannellum-config-data' element.");
-
-                // Вывод сырой JSON-строки в консоль
-                const rawJsonString = configElement.textContent || configElement.innerHTML;
-                console.log("[DEBUG] Raw JSON string from element:", rawJsonString);
-
-                let pannellumConfig;
-                try {
-                    pannellumConfig = JSON.parse(rawJsonString); // Используем rawJsonString
-                    console.log("[DEBUG] Successfully parsed Pannellum config (JS Object):", pannellumConfig);
-                } catch (e) {
-                    console.error("[ERROR] Failed to parse Pannellum config JSON:", e, rawJsonString); // Выводим сырую строку при ошибке
-                    return;
-                }
-
-
-                // 2. Обрабатываем каждую сцену и ее горячие точки
-                console.log("[DEBUG] Starting hotspot processing for scenes.");
-                for (const sceneId in pannellumConfig.scenes) {
-                    if (pannellumConfig.scenes.hasOwnProperty(sceneId)) {
-                        const scene = pannellumConfig.scenes[sceneId];
-                        console.log(`[DEBUG] Processing scene: ${sceneId}`, scene);
-
-                        if (scene.hotSpots && Array.isArray(scene.hotSpots)) {
-                            scene.hotSpots = scene.hotSpots.map((hotspot, index) => {
-                                console.log(`[DEBUG] Processing hotspot ${index} in scene ${sceneId}:`, hotspot);
-                                if (hotspot.tooltip_func_name && typeof hotspot.tooltip_func_name === 'string') {
-                                    const funcName = hotspot.tooltip_func_name;
-                                    console.log(`[DEBUG] Hotspot ${index} has tooltip_func_name: '${funcName}'`);
-                                    if (typeof customHotspotFunctions[funcName] === 'function') {
-                                        hotspot.createTooltipFunc = customHotspotFunctions[funcName];
-                                        console.log(`[DEBUG] Assigned function '${funcName}' to createTooltipFunc for hotspot ${index}.`);
-                                    } else {
-                                        console.warn(`[WARNING] Custom tooltip function '${funcName}' NOT FOUND in customHotspotFunctions for hotspot:`, hotspot);
-                                        delete hotspot.createTooltipFunc;
-                                    }
-                                    delete hotspot.tooltip_func_name;
-                                }
-                                return hotspot;
-                            });
-                            console.log(`[DEBUG] Finished processing hotspots for scene ${sceneId}. Hotspots after mapping:`, scene.hotSpots);
-                        } else {
-                            console.log(`[DEBUG] No hotspots or invalid hotspots array found for scene ${sceneId}.`);
-                        }
-                    }
-                }
-                console.log("[DEBUG] Finished processing all scenes and hotspots.");
-                console.log("[DEBUG] Final Pannellum config before viewer initialization (after hotspot processing):", pannellumConfig);
-
-
-                // 3. Проверяем контейнер и инициализируем Pannellum
-                const panoramaViewerDiv = document.getElementById('panorama-viewer');
-                if (!panoramaViewerDiv) {
-                    console.error("[ERROR] Element 'panorama-viewer' not found. Pannellum cannot be initialized. Exiting initialization.");
-                    return;
-                }
-                const divWidth = panoramaViewerDiv.offsetWidth;
-                const divHeight = panoramaViewerDiv.offsetHeight;
-                console.log(`[DEBUG] 'panorama-viewer' div dimensions: Width=${divWidth}px, Height=${divHeight}px.`);
-                if (divWidth === 0 || divHeight === 0) {
-                    console.warn("[WARNING] 'panorama-viewer' div has zero width or height. Panorama may not be visible. Check CSS styles for #panorama-viewer.");
-                }
-
-                if (pannellumConfig.default && pannellumConfig.scenes) {
-                    try {
-                        console.log("[DEBUG] Attempting to initialize Pannellum viewer...");
-                        pannellum.viewer('panorama-viewer', pannellumConfig);
-                        console.log("[DEBUG] Pannellum viewer initialization command sent. Check for Pannellum specific errors if nothing appears.");
-                    } catch (e) {
-                        console.error("[ERROR] Error during Pannellum viewer initialization:", e);
-                    }
-                } else {
-                    console.error("[ERROR] Invalid Pannellum configuration structure: Missing 'default' or 'scenes' objects.", pannellumConfig);
-                }
-
-                console.log("[DEBUG] initializePannellumViewer() finished.");
-            }
-
-            // === ВЫЗЫВАЕМ ОСНОВНУЮ ФУНКЦИЮ ПОСЛЕ ЗАГРУЗКИ DOM ===
-            // document.addEventListener('DOMContentLoaded', initializePannellumViewer);
-            initializePannellumViewer();
-            console.log("[DEBUG] Pannellum initialization process launched.");
-        </script>
     </div>
+
+    {{ pannellum_config|json_script:"pannellum-config-data" }}
+
+    <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const config = JSON.parse(document.getElementById('pannellum-config-data').textContent);
+
+            // Добавляем защитные параметры
+            config.default = config.default || {};
+            config.default.sceneFadeDuration = 2000;  // Фиксированное время перехода
+
+            const viewer = pannellum.viewer('panorama-viewer', config);
+
+            // Обработка ошибок
+            viewer.on('error', function(err) {
+                console.error('Pannellum Error:', err.message);
+            });
+
+            // Отладка переходов
+            viewer.on('scenechange', function(newScene) {
+                console.log('Успешный переход на сцену:', newScene);
+            });
+        });
+    </script>
 </body>
 </html>

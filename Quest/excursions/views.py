@@ -26,6 +26,7 @@ def excursion_view(request, route_id):
 
     # Итерируем по панорамам маршрута
     for panorama in route.panoramas.all():
+        count=0
         scene_id = panorama.scene_id
         # Если в маршруте не указана первая сцена, используем первую панораму в порядке
         if not first_scene_id:
@@ -34,13 +35,15 @@ def excursion_view(request, route_id):
         hotspots_for_pannellum = []
         # Итерируем по горячим точкам, связанным с текущей панорамой
         for hotspot_obj in panorama.hotspots.all():
+            count+=1
             hotspot_data = {
                 "pitch": hotspot_obj.pitch,
                 "yaw": hotspot_obj.yaw,
                 "text": hotspot_obj.text,
-                # Свойство 'type' для Pannellum будет определено ниже
             }
-            if hotspot_obj.target_scene:
+            print("hotspot:" + str(hotspot_data))
+
+            if hotspot_obj.target_scene:  # Убрали искусственное if True
                 # Это горячая точка-ссылка на другую сцену
                 hotspot_data["type"] = "scene"
                 hotspot_data["target"] = hotspot_obj.target_scene.scene_id
@@ -48,17 +51,10 @@ def excursion_view(request, route_id):
                     hotspot_data["targetPitch"] = hotspot_obj.target_pitch
                 if hotspot_obj.target_yaw is not None:
                     hotspot_data["targetYaw"] = hotspot_obj.target_yaw
-            else:
-                hotspot_data["type"] = "info"  # Или hotspot_obj.type, если у вас это поле используется
-                # Имя JS-функции для подсказки
-                if hotspot_obj.tooltip_func_name:  # Проверяем, что поле заполнено
-                    hotspot_data["tooltip_func_name"] = hotspot_obj.tooltip_func_name
-                else:
-                    # Если tooltip_func_name не указано, можно использовать дефолтную функцию
-                    hotspot_data["tooltip_func_name"] = "hotspotInfo"
 
             hotspots_for_pannellum.append(hotspot_data)
-
+            print("hotspot_for_pannellum:" + str(hotspots_for_pannellum))
+            print("count hotspots:" + str(count))
         scenes[scene_id] = {
             "type": "equirectangular",
             "panorama": panorama.image.url,
@@ -74,7 +70,7 @@ def excursion_view(request, route_id):
         "scenes": scenes
     }
 
-    print(f"Загрузка маршрута: {route.name} (ID: {route.id})")
+    print(f"Загрузка маршрута: {route.name} (ID: {route.id}) (Congig: {config}")
     return render(request, 'excursions/excursion.html', {
         'route': route,
         'pannellum_config': config

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Экскурсия: {{ route.name }}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'pannellum/pannellum.css' %}"/>
+    <style>
+        #panorama-viewer {
+            width: 100%;
+            height: 80vh;
+            margin-top: 20px;
+        }
+        @media (max-width: 768px) {
+            #panorama-viewer { height: 60vh; }
+        }
+
+        /* Обновленные стили для кастомных хотспотов */
+        .custom-hotspot {
+            background-color: rgba(0, 123, 255, 0.7); /* Синий кружок */
+            border-radius: 50%;
+            width: 25px; /* Размер кружка */
+            height: 25px;
+            transition: transform 0.2s;
+            cursor: pointer; /* Показывает, что элемент кликабелен */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* Если вы хотите добавить иконку или текст внутрь кружка, это обеспечит центрирование */
+        }
+        .custom-hotspot:hover {
+            transform: scale(1.2);
+        }
+
+        /* Стили для всплывающей подсказки (тултипа) */
+        .pnlm-tooltip {
+            background-color: rgba(0, 0, 0, 0.7); /* Темный фон */
+            color: white; /* Белый текст */
+            padding: 5px 10px;
+            border-radius: 5px;
+            position: absolute; /* Позиционирование относительно родительского хотспота */
+            bottom: 100%; /* Разместить над хотспотом */
+            left: 50%;
+            transform: translateX(-50%); /* Центрирование по горизонтали */
+            white-space: nowrap; /* Чтобы текст не переносился */
+            opacity: 0; /* Изначально скрыт */
+            transition: opacity 0.2s; /* Плавное появление/исчезновение */
+            pointer-events: none; /* КРИТИЧНО: НЕ перехватывает клики */
+            z-index: 10; /* Поверх других элементов */
+            margin-bottom: 5px; /* Небольшой отступ от хотспота */
+        }
+
+        /* Дополнительный класс, если хотите другой цвет для хотспотов сцен */
+        .custom-hotspot.scene-hotspot {
+            background-color: rgba(255, 0, 0, 0.7); /* Например, красный кружок для переходов */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ route.name }}</h1>
+        <p>{{ route.description }}</p>
+        <div id="panorama-viewer"></div>
+    </div>
+
+    {{ pannellum_config|json_script:"pannellum-config-data" }}
+    <script src="{% static 'pannellum/pannellum.js' %}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof pannellum === 'undefined') {
+                console.error('Pannellum not loaded!');
+                return;
+            }
+            const config = JSON.parse(document.getElementById('pannellum-config-data').textContent);
+
+            // Расширяем конфигурацию для кастомных хотспотов
+            const extendedConfig = {
+                ...config, // Копируем вашу текущую конфигурацию
+                // "hotSpotDebug": true, // Раскомментируйте для отладки положения хотспотов
+                "createHotspotFunc": function(hotSpotDiv, args) {
+                    // hotSpotDiv - это контейнер, который Pannellum предоставляет для вашего хотспота.
+                    // Pannellum уже добавляет сюда свои базовые классы (pnlm-hotspot, pnlm-scene)
+                    // и прикрепляет обработчик кликов.
+
+                    // 1. Создаем визуальный элемент хотспота (ваш кружок)
+                    var customElement = document.createElement('div');
+                    customElement.classList.add('custom-hotspot'); // Применяем ваш CSS класс
+
+                    // Если это хотспот для перехода на другую сцену, можно добавить специальный класс
+                    if (args.type === 'scene') {
+                        customElement.classList.add('scene-hotspot');
+                    }
+
+                    hotSpotDiv.appendChild(customElement);
+
+                    // 2. Создаем элемент для всплывающей подсказки (тултипа)
+                    var tooltip = document.createElement('p');
+                    tooltip.classList.add('pnlm-tooltip'); // Применяем класс тултипа ТОЛЬКО к этому элементу
+                    tooltip.textContent = args.text; // Текст из конфигурации хотспота
+
+                    // Важно: Убедитесь, что тултип не перехватывает клики!
+                    tooltip.style.pointerEvents = 'none';
+
+                    hotSpotDiv.appendChild(tooltip);
+
+                    // 3. Добавляем обработчики для показа/скрытия тултипа при наведении
+                    hotSpotDiv.addEventListener('mouseover', function() {
+                        tooltip.style.opacity = '1';
+                    });
+                    hotSpotDiv.addEventListener('mouseout', function() {
+                        tooltip.style.opacity = '0';
+                    });
+                }
+            };
+
+            // Инициализируем Pannellum с расширенной конфигурацией
+            pannellum.viewer('panorama-viewer', extendedConfig);
+        });
+    </script>
+</body>
+</html>
