@@ -89,34 +89,34 @@ WSGI_APPLICATION = 'Quest.wsgi.application'
 #     }
 #
 # }
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'bestdb',
-#         'USER': 'daniyar',
-#         'PASSWORD': 'admin',
-#         'HOST': '176.111.212.151',
-#         'PORT': '5432',
-#         'OPTIONS': {
-#             'client_encoding': 'UTF8',
-#         }
-#     }
-#
-# }
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'RAB2',
-        'USER': 'postgres',
-        'PASSWORD': '1234',
-        'HOST': 'localhost',
+        'NAME': 'bestdb',
+        'USER': 'daniyar',
+        'PASSWORD': 'admin',
+        'HOST': '176.111.212.151',
         'PORT': '5432',
         'OPTIONS': {
             'client_encoding': 'UTF8',
         }
     }
+
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'RAB2',
+#         'USER': 'postgres',
+#         'PASSWORD': '1234',
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#         'OPTIONS': {
+#             'client_encoding': 'UTF8',
+#         }
+#     }
+# }
 
 
 # Password validation

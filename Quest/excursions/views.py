@@ -1,12 +1,15 @@
 # excursions/views.py
+from datetime import timezone
+
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from .models import Route, Panorama, HotSpot # Добавили HotSpot
+from .models import Route, Panorama, HotSpot, UserRouteProgress  # Добавили HotSpot
 from academic_structure.models import Department, Direction
 from django.db.models import Prefetch # Для эффективной выборки связанных объектов
 from django.conf import settings
 from django.views.decorators.http import require_POST
+import json
 
 @require_POST
 @login_required
