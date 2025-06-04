@@ -13,4 +13,5 @@ urlpatterns = [
     path('api/get_departments/', views.get_departments_api, name='get_departments_api'),
     path('api/get_directions/', views.get_directions_api, name='get_directions_api'),
     path('api/submit-quiz-answers/', views.submit_quiz_answers, name='submit_quiz_answers'),
+    path('api/log-scene-change/', views.log_scene_change_api, name='log_scene_change_api'),
 ]

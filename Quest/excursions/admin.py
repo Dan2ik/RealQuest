@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Route, Panorama, HotSpot, ReferenceInfo, Quiz, Question, Choice
+from .models import Route, Panorama, HotSpot, ReferenceInfo, Quiz, Question, Choice, SessionLog
 
 # --- Инлайны для Тестов ---
 class ChoiceInline(admin.TabularInline):
@@ -48,3 +48,10 @@ class ReferenceInfoAdmin(admin.ModelAdmin):
     list_display = ('title', 'department')
     list_filter = ('department',)
     search_fields = ('title', 'content')
+
+@admin.register(SessionLog)
+class SessionLogAdmin(admin.ModelAdmin):
+    list_display = ('user', 'route', 'start_time', 'end_time', 'is_completed')
+    list_filter = ('route', 'user', 'is_completed', 'start_time')
+    search_fields = ('user__username', 'user__email', 'route__name')
+    readonly_fields = ('start_time', 'events') # 'events' лучше сделать readonly, чтобы случайно не испортить JSON в админке
