@@ -1,8 +1,7 @@
 from django.db import models
 from academic_structure.models import Institute, Department, Direction
-from django.conf import settings
-from django.contrib.postgres.fields import ArrayField
-from django.utils import timezone
+
+
 
 
 class Route(models.Model):
@@ -18,7 +17,20 @@ class Route(models.Model):
         verbose_name = "Маршрут"
         verbose_name_plural = "Маршруты"
 
+class Quiz(models.Model):
+    # OneToOneField должен быть здесь, указывая на Route.
+    # primary_key=True делает PK Quiz таким же, как PK Route, обеспечивая 1:1 связь.
+    route = models.OneToOneField(Route, on_delete=models.CASCADE, primary_key=True,
+                                 related_name='quiz_for_route', verbose_name="Маршрут")
+    title = models.CharField(max_length=255, verbose_name="Название теста")
+    description = models.TextField(blank=True, verbose_name="Описание теста")
 
+    def __str__(self):
+        return f"Тест для маршрута: {self.route.name}" # Теперь можем обращаться к route.name
+
+    class Meta:
+        verbose_name = "Тест маршрута"
+        verbose_name_plural = "Тесты маршрутов"
 class Panorama(models.Model):
     route = models.ForeignKey(Route, related_name='panoramas', on_delete=models.CASCADE, verbose_name="Маршрут")
     scene_id = models.CharField(max_length=100, verbose_name="ID сцены")
@@ -77,22 +89,30 @@ class ReferenceInfo(models.Model):
         verbose_name = "Справочная информация"
         verbose_name_plural = "Справочная информация"
 
-class UserRouteProgress(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        verbose_name="Пользователь"
-    )
-    route = models.ForeignKey(Route, on_delete=models.CASCADE, verbose_name="Маршрут")
-    last_scene_id = models.CharField(max_length=100, blank=True, verbose_name="Последняя сцена")
-    visited_scenes = ArrayField(models.CharField(max_length=100), default=list, blank=True, verbose_name="Посещённые сцены")
-    progress_percent = models.FloatField(default=0.0, verbose_name="Прогресс (%)")
-    updated_at = models.DateTimeField(default=timezone.now, verbose_name="Обновлено")
-
-    class Meta:
-        unique_together = ('user', 'route')
-        verbose_name = "Прогресс пользователя"
-        verbose_name_plural = "Прогресс пользователей"
+class Question(models.Model):
+    quiz = models.ForeignKey(Quiz, related_name='questions', on_delete=models.CASCADE,
+                             verbose_name="Тест")
+    question_text = models.TextField(verbose_name="Текст вопроса")
+    order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
 
     def __str__(self):
-        return f"{self.user} – {self.route.name} – {self.progress_percent:.1f}%"
+        return f"Вопрос {self.order}: {self.question_text[:50]}..."
+
+    class Meta:
+        verbose_name = "Вопрос"
+        verbose_name_plural = "Вопросы"
+        ordering = ['order']
+        unique_together = ('quiz', 'order')
+
+class Choice(models.Model):
+    question = models.ForeignKey(Question, related_name='choices', on_delete=models.CASCADE,
+                                 verbose_name="Вопрос")
+    choice_text = models.CharField(max_length=255, verbose_name="Текст варианта ответа")
+    is_correct = models.BooleanField(default=False, verbose_name="Правильный ответ")
+
+    def __str__(self):
+        return self.choice_text
+
+    class Meta:
+        verbose_name = "Вариант ответа"
+        verbose_name_plural = "Варианты ответов"

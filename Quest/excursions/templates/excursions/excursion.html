@@ -9,12 +9,77 @@
 
     <div id="panorama-viewer" class="mb-4 rounded shadow-sm border"></div>
 
-    <div id="config-display" class="form-section">
-        <h3>Конфигурация Pannellum:</h3>
-        <pre><code class="language-json" id="config-json"></code></pre>
+    {# Оставить эту строку ОБЯЗАТЕЛЬНО. Она передает данные Pannellum в JavaScript. #}
+    {{ pannellum_config|json_script:"pannellum-config-data" }}
+    {{ quiz_data_for_js|json_script:"quiz-data" }}
+
+    <div class="form-section mb-4 p-3 bg-light border rounded shadow-sm">
+        <h3>Информация по кафедре:</h3>
+        {% if department_info %}
+            <h4>Кафедра: {{ department_info.name }}</h4>
+            {% if department_reference_infos %}
+                <div class="list-group">
+                    {% for info in department_reference_infos %}
+                        <div class="list-group-item flex-column align-items-start">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">{{ info.title }}</h5>
+                            </div>
+                            <p class="mb-1">{{ info.content|linebreaksbr }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>Для кафедры "{{ department_info.name }}" справочная информация не найдена.</p>
+            {% endif %}
+        {% else %}
+            <p>Для этого маршрута не указана кафедра или направление.</p>
+        {% endif %}
     </div>
 
-    {{ pannellum_config|json_script:"pannellum-config-data" }}
+    <div class="form-section mb-4 p-3 bg-light border rounded shadow-sm">
+        <h3>Тест для маршрута:</h3>
+        {% if route.quiz_for_route %}
+            <div class="card mb-3 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">{{ route.quiz_for_route.title }}</h4>
+                    {% if route.quiz_for_route.description %}<p class="mb-0">{{ route.quiz_for_route.description }}</p>{% endif %}
+                </div>
+                <div class="card-body">
+                    <form id="quiz-form-{{ route.quiz_for_route.pk }}" class="quiz-form" data-quiz-id="{{ route.quiz_for_route.pk }}">
+                        {% csrf_token %}
+                        {% if route.quiz_for_route.questions %}
+                            {% for question in route.quiz_for_route.questions.all %}
+                                <div class="mb-3">
+                                    <p class="fw-bold">{{ forloop.counter }}. {{ question.question_text }}</p>
+                                    {% if question.choices %}
+                                        {% for choice in question.choices.all %}
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio"
+                                                       name="question-{{ question.id }}"
+                                                       id="choice-{{ choice.id }}"
+                                                       value="{{ choice.id }}" required>
+                                                <label class="form-check-label" for="choice-{{ choice.id }}">
+                                                    {{ choice.choice_text }}
+                                                </label>
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <p>Для этого вопроса нет вариантов ответа.</p>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                            <button type="submit" class="btn btn-success mt-3">Ответить</button>
+                        {% else %}
+                            <p>Для этого теста нет вопросов.</p>
+                        {% endif %}
+                    </form>
+                    <div id="quiz-results-{{ route.quiz_for_route.pk }}" class="mt-3"></div>
+                </div>
+            </div>
+        {% else %}
+            <p>Для этого маршрута тест не найден.</p>
+        {% endif %}
+    </div>
 {% endblock %}
 
 {% block extra_js %}
@@ -22,10 +87,12 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css"/>
     <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
 
-    <!-- Prism.js для подсветки JSON -->
+    {# Эти строки для Prism.js были удалены, так как они не нужны без блока config-display #}
+    {#
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism.min.css"/>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-json.min.js"></script>
+    #}
 
     <style>
         #panorama-viewer {
@@ -44,57 +111,166 @@
             cursor: pointer !important;
         }
 
+        /* Стиль для config-display был удален, так как сам блок удален */
+        /*
         #config-display pre {
             background-color: #f8f9fa;
             padding: 1rem;
             border-radius: 4px;
             overflow-x: auto;
         }
+        */
+
+        .quiz-results-item {
+            margin-bottom: 0.5rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+        .quiz-results-item.correct::before {
+            content: '✅';
+            position: absolute;
+            left: 0;
+        }
+        .quiz-results-item.incorrect::before {
+            content: '❌';
+            position: absolute;
+            left: 0;
+        }
     </style>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // Получаем конфигурацию Pannellum из скрытого скрипта
             const config = JSON.parse(document.getElementById('pannellum-config-data').textContent);
-            document.getElementById('config-json').textContent = JSON.stringify(config, null, 2);
 
+            // Строка, которая заполняла config-json, удалена, так как элемента больше нет
+            // document.getElementById('config-json').textContent = JSON.stringify(config, null, 2);
+
+            // Инициализация Pannellum
             const viewer = pannellum.viewer('panorama-viewer', config);
 
             viewer.on('error', function (err) {
                 console.error('Pannellum Error:', err.message);
             });
 
-            // Функция обновления прогресса
-            function onSceneChange(sceneId) {
-                fetch("{% url 'update_progress' %}", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRFToken": "{{ csrf_token }}"
-                    },
-                    body: JSON.stringify({
-                        route_id: {{ route.id }},
-                        scene_id: sceneId
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.progress !== undefined) {
-                        console.log("Прогресс обновлён:", data.progress.toFixed(1) + "%");
-                    } else {
-                        console.warn("Ошибка при обновлении прогресса:", data.error);
-                    }
-                })
-                .catch(error => {
-                    console.error("Ошибка при отправке прогресса:", error);
-                });
-            }
+            viewer.on('scenechange', function (newScene) {
+                console.log('Переход на сцену:', newScene);
+            });
 
-            // Подписка на смену сцены
-            viewer.on('scenechange', function (sceneId) {
-                console.log('Переход на сцену:', sceneId);
-                onSceneChange(sceneId);
+
+            // --- ЛОГИКА ТЕСТА ---
+
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+            const csrftoken = getCookie('csrftoken');
+
+
+            const quizDataForJsElement = document.getElementById('quiz-data');
+            const quizData = quizDataForJsElement ? JSON.parse(quizDataForJsElement.textContent) : null;
+
+
+            document.querySelectorAll('.quiz-form').forEach(form => {
+                form.addEventListener('submit', function (event) {
+                    event.preventDefault();
+
+                    const quizId = this.dataset.quizId;
+                    const answers = {};
+                    let allQuestionsAnswered = true;
+
+                    if (quizData && quizData.id == quizId) {
+                        quizData.questions.forEach(q => {
+                            const selectedChoice = this.querySelector(`input[name="question-${q.id}"]:checked`);
+                            if (selectedChoice) {
+                                answers[q.id] = selectedChoice.value;
+                            } else {
+                                allQuestionsAnswered = false;
+                            }
+                        });
+                    } else {
+                        const questionRadios = new Set();
+                        this.querySelectorAll('input[type="radio"]').forEach(radio => {
+                            questionRadios.add(radio.name);
+                            if (radio.checked) {
+                                const questionId = radio.name.split('-')[1];
+                                answers[questionId] = radio.value;
+                            }
+                        });
+                        if (Object.keys(answers).length !== questionRadios.size) {
+                             allQuestionsAnswered = false;
+                        }
+                    }
+
+
+                    if (!allQuestionsAnswered) {
+                        alert('Пожалуйста, ответьте на все вопросы теста.');
+                        return;
+                    }
+
+
+                    fetch('{% url "excursions:submit_quiz_answers" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrftoken
+                        },
+                        body: JSON.stringify({
+                            quiz_id: quizId,
+                            answers: answers
+                        })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(err => { throw new Error(err.error || 'Ошибка сети или сервера'); });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        const resultsDiv = document.getElementById(`quiz-results-${quizId}`);
+                        resultsDiv.innerHTML = '';
+
+                        if (data.success) {
+                            resultsDiv.innerHTML += `<p class="fw-bold">Ваш результат: ${data.score} из ${data.total_questions} (${data.percentage.toFixed(2)}%)</p>`;
+                            resultsDiv.innerHTML += '<hr>';
+
+                            data.results.forEach(res => {
+                                let questionText = res.question_text;
+                                if (questionText.length > 100) {
+                                    questionText = questionText.substring(0, 100) + '...';
+                                }
+
+                                const resultItem = document.createElement('div');
+                                resultItem.classList.add('quiz-results-item');
+                                if (res.is_correct) {
+                                    resultItem.classList.add('correct', 'text-success');
+                                    resultItem.innerHTML = `<strong>${questionText}</strong> - Правильно!`;
+                                } else {
+                                    resultItem.classList.add('incorrect', 'text-danger');
+                                    resultItem.innerHTML = `<strong>${questionText}</strong> - Неправильно.`;
+                                }
+                                resultsDiv.appendChild(resultItem);
+                            });
+                        } else {
+                            resultsDiv.innerHTML = `<p class="text-danger">Ошибка: ${data.error}</p>`;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Ошибка при отправке теста:', error);
+                        alert('Произошла ошибка при отправке теста: ' + error.message);
+                    });
+                });
             });
         });
     </script>
-
 {% endblock %}
