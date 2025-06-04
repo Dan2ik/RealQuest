@@ -210,3 +210,5 @@ def get_directions_api(request):
         directions_data = [{'id': direc.id, 'name': direc.name} for direc in directions]
 
     return JsonResponse(directions_data, safe=False)
+def update_progress(request):
+    return  HttpResponse("OK")
