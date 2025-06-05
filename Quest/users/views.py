@@ -16,6 +16,7 @@ from django.contrib.auth.forms import AuthenticationForm # Импортируе�
 from .forms import UserCreationForm as CustomUserCreationForm, UserLoginForm # Предполагаем, что UserLoginForm - это ваша форма
 from django.contrib.auth.decorators import login_required
 
+
 def register_view(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)

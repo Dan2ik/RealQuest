@@ -1,8 +1,6 @@
 from django.db import models
 from academic_structure.models import Institute, Department, Direction
-
-
-
+from django.conf import settings
 
 class Route(models.Model):
     name = models.CharField(max_length=255, verbose_name="Название маршрута")
@@ -31,6 +29,7 @@ class Quiz(models.Model):
     class Meta:
         verbose_name = "Тест маршрута"
         verbose_name_plural = "Тесты маршрутов"
+
 class Panorama(models.Model):
     route = models.ForeignKey(Route, related_name='panoramas', on_delete=models.CASCADE, verbose_name="Маршрут")
     scene_id = models.CharField(max_length=100, verbose_name="ID сцены")
@@ -97,7 +96,6 @@ class Question(models.Model):
 
     def __str__(self):
         return f"Вопрос {self.order}: {self.question_text[:50]}..."
-
     class Meta:
         verbose_name = "Вопрос"
         verbose_name_plural = "Вопросы"
@@ -116,3 +114,41 @@ class Choice(models.Model):
     class Meta:
         verbose_name = "Вариант ответа"
         verbose_name_plural = "Варианты ответов"
+
+class SessionLog(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, # Ссылка на вашу кастомную модель User
+        on_delete=models.CASCADE,
+        verbose_name="Пользователь"
+    )
+    route = models.ForeignKey(
+        'Route', # Если Route определена в этом же файле models.py
+        on_delete=models.CASCADE,
+        verbose_name="Маршрут"
+    )
+    start_time = models.DateTimeField(
+        auto_now_add=True, # Автоматически устанавливается при создании записи
+        verbose_name="Время начала"
+    )
+    end_time = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Время окончания"
+    )
+    is_completed = models.BooleanField(
+        default=False,
+        verbose_name="Маршрут завершен"
+    )
+    events = models.JSONField(
+        default=list, # По умолчанию пустой список для хранения событий
+        blank=True,   # Разрешаем быть пустым на уровне формы/админки
+        verbose_name="События сессии"
+    )
+
+    def __str__(self):
+        return f"Сессия {self.user.username} на маршруте '{self.route.name}' (начало: {self.start_time.strftime('%Y-%m-%d %H:%M')})"
+
+    class Meta:
+        verbose_name = "Лог сессии экскурсии"
+        verbose_name_plural = "Логи сессий экскурсий"
+        ordering = ['-start_time'] # Сортировка по убыванию времени начала

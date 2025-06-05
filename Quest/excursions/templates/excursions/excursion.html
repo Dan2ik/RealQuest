@@ -9,9 +9,15 @@
 
     <div id="panorama-viewer" class="mb-4 rounded shadow-sm border"></div>
 
-    {# Оставить эту строку ОБЯЗАТЕЛЬНО. Она передает данные Pannellum в JavaScript. #}
+    {# Эти данные передаются в JavaScript #}
     {{ pannellum_config|json_script:"pannellum-config-data" }}
     {{ quiz_data_for_js|json_script:"quiz-data" }}
+    {# NEW: Передаем session_log_id в JavaScript #}
+    <script id="session-data" type="application/json">
+        {
+            "session_log_id": "{{ session_log_id }}"
+        }
+    </script>
 
     <div class="form-section mb-4 p-3 bg-light border rounded shadow-sm">
         <h3>Информация по кафедре:</h3>
@@ -87,13 +93,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css"/>
     <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
 
-    {# Эти строки для Prism.js были удалены, так как они не нужны без блока config-display #}
-    {#
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism.min.css"/>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-json.min.js"></script>
-    #}
-
     <style>
         #panorama-viewer {
             width: 100%;
@@ -110,16 +109,6 @@
         .pnlm-hotspot {
             cursor: pointer !important;
         }
-
-        /* Стиль для config-display был удален, так как сам блок удален */
-        /*
-        #config-display pre {
-            background-color: #f8f9fa;
-            padding: 1rem;
-            border-radius: 4px;
-            overflow-x: auto;
-        }
-        */
 
         .quiz-results-item {
             margin-bottom: 0.5rem;
@@ -141,25 +130,24 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             // Получаем конфигурацию Pannellum из скрытого скрипта
-            const config = JSON.parse(document.getElementById('pannellum-config-data').textContent);
+            const pannellumConfig = JSON.parse(document.getElementById('pannellum-config-data').textContent); // Renamed to avoid conflict
 
-            // Строка, которая заполняла config-json, удалена, так как элемента больше нет
-            // document.getElementById('config-json').textContent = JSON.stringify(config, null, 2);
+            // NEW: Получаем session_log_id
+            const sessionDataElement = document.getElementById('session-data');
+            const sessionLogId = sessionDataElement ? JSON.parse(sessionDataElement.textContent).session_log_id : null;
+
+            if (!sessionLogId) {
+                console.error("Session Log ID not found in HTML. Logging will be disabled.");
+            }
 
             // Инициализация Pannellum
-            const viewer = pannellum.viewer('panorama-viewer', config);
+            const viewer = pannellum.viewer('panorama-viewer', pannellumConfig); // Use renamed config
 
             viewer.on('error', function (err) {
                 console.error('Pannellum Error:', err.message);
             });
 
-            viewer.on('scenechange', function (newScene) {
-                console.log('Переход на сцену:', newScene);
-            });
-
-
-            // --- ЛОГИКА ТЕСТА ---
-
+            // --- ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ CSRF-ТОКЕНА ---
             function getCookie(name) {
                 let cookieValue = null;
                 if (document.cookie && document.cookie !== '') {
@@ -176,10 +164,54 @@
             }
             const csrftoken = getCookie('csrftoken');
 
+            // --- ЛОГИРОВАНИЕ СМЕНЫ СЦЕНЫ ---
+            viewer.on('scenechange', function (newSceneId) {
+                console.log('Переход на сцену (ID):', newSceneId);
 
+                if (!sessionLogId) {
+                    console.warn("Cannot log scene change: sessionLogId is missing.");
+                    return;
+                }
+
+                // Получаем title сцены из конфигурации Pannellum
+                let sceneTitle = "Unknown Scene";
+                if (pannellumConfig.scenes && pannellumConfig.scenes[newSceneId] && pannellumConfig.scenes[newSceneId].title) {
+                    sceneTitle = pannellumConfig.scenes[newSceneId].title;
+                } else {
+                    console.warn(`Title not found for scene ID: ${newSceneId} in pannellumConfig.scenes`);
+                }
+                console.log('Название сцены:', sceneTitle);
+
+                // NEW: Отправляем данные на сервер для логирования
+                fetch("{% url 'excursions:log_scene_change_api' %}", { // ЗАМЕНИТЕ 'excursions' на имя вашего приложения, если оно другое
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: JSON.stringify({
+                        session_log_id: sessionLogId,
+                        scene_id: newSceneId,
+                        scene_title: sceneTitle
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        console.log('Scene change logged successfully:', data.message);
+                    } else {
+                        console.error('Error logging scene change:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Network error or server issue logging scene change:', error);
+                });
+            });
+
+
+            // --- ЛОГИКА ТЕСТА ---
             const quizDataForJsElement = document.getElementById('quiz-data');
             const quizData = quizDataForJsElement ? JSON.parse(quizDataForJsElement.textContent) : null;
-
 
             document.querySelectorAll('.quiz-form').forEach(form => {
                 form.addEventListener('submit', function (event) {
@@ -189,6 +221,7 @@
                     const answers = {};
                     let allQuestionsAnswered = true;
 
+                    // Сбор ответов (ваш существующий код)
                     if (quizData && quizData.id == quizId) {
                         quizData.questions.forEach(q => {
                             const selectedChoice = this.querySelector(`input[name="question-${q.id}"]:checked`);
@@ -198,7 +231,7 @@
                                 allQuestionsAnswered = false;
                             }
                         });
-                    } else {
+                    } else { // Fallback, если quizData не доступен или не совпадает
                         const questionRadios = new Set();
                         this.querySelectorAll('input[type="radio"]').forEach(radio => {
                             questionRadios.add(radio.name);
@@ -212,23 +245,30 @@
                         }
                     }
 
-
                     if (!allQuestionsAnswered) {
                         alert('Пожалуйста, ответьте на все вопросы теста.');
                         return;
                     }
 
+                    // MODIFIED: Формируем тело запроса, добавляя sessionLogId
+                    const requestBody = {
+                        quiz_id: quizId,
+                        answers: answers
+                    };
 
-                    fetch('{% url "excursions:submit_quiz_answers" %}', {
+                    if (sessionLogId) {
+                        requestBody.session_log_id = sessionLogId;
+                    } else {
+                        console.warn("sessionLogId is missing, quiz submission will not be fully logged in SessionLog.");
+                    }
+
+                    fetch('{% url "excursions:submit_quiz_answers" %}', { // ЗАМЕНИТЕ 'excursions' на имя вашего приложения, если оно другое
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'X-CSRFToken': csrftoken
                         },
-                        body: JSON.stringify({
-                            quiz_id: quizId,
-                            answers: answers
-                        })
+                        body: JSON.stringify(requestBody) // Используем обновленное тело запроса
                     })
                     .then(response => {
                         if (!response.ok) {
@@ -261,6 +301,11 @@
                                 }
                                 resultsDiv.appendChild(resultItem);
                             });
+                            // Можно добавить здесь сообщение, что результаты теста также залогированы, если sessionLogId был отправлен.
+                            if (sessionLogId) {
+                                console.log("Quiz submission data sent with sessionLogId for server-side logging.");
+                            }
+
                         } else {
                             resultsDiv.innerHTML = `<p class="text-danger">Ошибка: ${data.error}</p>`;
                         }
